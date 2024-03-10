@@ -1,70 +1,87 @@
-# Getting Started with Create React App
+# Introduction
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# Create infrastructure
 
-## Available Scripts
+```bash
+export PROJECT_ID=$(gcloud config get-value project)
+export PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
+export REGION=europe-west1
+```
 
-In the project directory, you can run:
+- Active the required APIs
 
-### `npm start`
+```bash
+gcloud services enable cloudbuild.googleapis.com \
+clouddeploy.googleapis.com
+```
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- Create a bucket to serve assets for dev.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+```bash
+gcloud storage buckets create gs://$PROJECT_ID-dev
+```
 
-### `npm test`
+- Create a bucket to serve assets for production.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```bash
+gcloud storage buckets create gs://$PROJECT_ID-prod
+```
 
-### `npm run build`
+- Make buckets publically readable
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+gcloud storage buckets add-iam-policy-binding gs://$PROJECT_ID-dev --member=allUsers --role=roles/storage.objectViewer
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+gcloud storage buckets add-iam-policy-binding gs://$PROJECT_ID-prod --member=allUsers --role=roles/storage.objectViewer
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- Give permissions to SA
 
-### `npm run eject`
+```bash
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+--member=serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com \
+--role=roles/clouddeploy.jobRunner
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+- Give permissions to the cloud build SA to create releases
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```bash
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+--member=serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com \
+--role=roles/clouddeploy.releaser
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+- Give permissions to the cloud build SA to impersonate the default compute developer SA
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```bash
+gcloud iam service-accounts add-iam-policy-binding $PROJECT_NUMBER-compute@developer.gserviceaccount.com \
+--member=serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com \
+--role=roles/iam.serviceAccountUser \
+--project=$PROJECT_ID
+```
 
-## Learn More
+- Deploy the custom target type gcs
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```bash
+gcloud deploy apply --file=./cd-manifests/target-type-gcs.yaml --region=$REGION
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- Deploy the custom target web-dev
 
-### Code Splitting
+```bash
+gcloud deploy apply --file=./cd-manifests/target-dev.yaml --region=$REGION
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+- Deploy the custom target web-prod
 
-### Analyzing the Bundle Size
+```bash
+gcloud deploy apply --file=./cd-manifests/target-prod.yaml --region=$REGION
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+- Deploy the pipeline
 
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```bash
+gcloud deploy apply --file=./cd-manifests/pipeline.yaml --region=$REGION
+```
