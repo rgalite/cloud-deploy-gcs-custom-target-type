@@ -27,15 +27,7 @@ gcloud storage buckets create gs://$PROJECT_ID-dev
 gcloud storage buckets create gs://$PROJECT_ID-prod
 ```
 
-- Make buckets publically readable
-
-```bash
-gcloud storage buckets add-iam-policy-binding gs://$PROJECT_ID-dev --member=allUsers --role=roles/storage.objectViewer
-```
-
-```bash
-gcloud storage buckets add-iam-policy-binding gs://$PROJECT_ID-prod --member=allUsers --role=roles/storage.objectViewer
-```
+- To set up your assets as websites, follow the instructions in the [Cloud Storage documentation](https://cloud.google.com/storage/docs/hosting-static-website).
 
 - Give permissions to SA
 
