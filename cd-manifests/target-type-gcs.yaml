@@ -1,0 +1,10 @@
+apiVersion: deploy.cloud.google.com/v1
+kind: CustomTargetType
+metadata:
+  name: gcs
+  annotations:
+  labels:
+description:
+customActions:
+  renderAction: render
+  deployAction: deploy

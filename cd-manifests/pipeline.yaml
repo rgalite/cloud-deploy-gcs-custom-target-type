@@ -1,0 +1,10 @@
+apiVersion: deploy.cloud.google.com/v1
+kind: DeliveryPipeline
+metadata:
+ name: web
+serialPipeline:
+ stages:
+ - targetId: web-dev
+   profiles: []
+ - targetId: web-prod
+   profiles: []

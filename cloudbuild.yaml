@@ -1,0 +1,27 @@
+steps:
+
+- id: npm install
+  name: 'gcr.io/cloud-builders/npm'
+  args: ['install']
+
+- id: build
+  name: 'gcr.io/cloud-builders/npm'
+  args: ['run', 'build']
+
+- id: tar
+  name: ubuntu
+  entrypoint: '/bin/bash'
+  args:
+  - -c
+  - tar -czvf build.tar.gz build/ skaffold.yaml
+
+- id: release
+  name: gcr.io/cloud-builders/gcloud
+  args:
+  - deploy
+  - releases
+  - create
+  - 'release-$$DATE-$$TIME'
+  - --source=build.tar.gz
+  - --region=europe-west1
+  - --delivery-pipeline=web
